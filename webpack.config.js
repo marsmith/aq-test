@@ -1,6 +1,7 @@
 var path = require('path');
 var webpack = require('webpack');
 var pkg = require('./package.json');
+var BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 
 var PATHS = {
     src: path.join(__dirname, 'src/'),
@@ -29,7 +30,8 @@ module.exports = {
             '$': 'jquery',
             'Util': "exports-loader?Util!bootstrap/js/dist/util"
         }),
-        new webpack.DefinePlugin( {'VERSION': JSON.stringify(pkg.version) })
+        new webpack.DefinePlugin( {'VERSION': JSON.stringify(pkg.version) }),
+        new BundleAnalyzerPlugin()
     ],
     devServer: {
         open: true,

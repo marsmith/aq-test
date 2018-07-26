@@ -1,0 +1,40 @@
+#  RDB file created by NWIS gwtable program
+#
+# FIELD   CODE   DESCRIPTION
+#
+#     1   C001   Site ID (station number)                          
+#     2   C012   Local well number                                 
+#     3   C909   Latitude NAD83 in decimal degrees                 
+#     4   C910   Longitude NAD83 in decimal degrees                
+#     5   C098   Test type                                         
+#     6   C099   Test start date                                   
+#     7   C296   Test end date                                     
+#     8   C297   Test end time                                     
+#     9   C502   Test start time datum                             
+#    10   C731   Record type in TEST file                          
+#    11   C790   Test Start Time                                   
+#    12   C110   Storage coefficient                               
+#    13   C487   Test type                                         
+#    14   C488   Test start date                                   
+#    15   C489   Test Start Time                                   
+#    16   C732   Record type in TEST file                          
+#    17   C743   Test method code                                  
+#    18   C744   Test data type                                    
+#    19   C105   Result value                                      
+#    20   C150   Discharge                                         
+#    21   C148   Date discharge measured                           
+#    22   C500   Related site station number                       
+#    23   C100   Result unit id                                    
+#    24   C101   Result interval -top                              
+#    25   C102   Result interval -bottom                           
+#    26   C714   Aquifer code                                      
+#
+C001	C012	C909	C910	C098	C099	C296	C297	C502	C731	C790	C110	C487	C488	C489	C732	C743	C744	C105	C150	C148	C500	C100	C101	C102	C714
+15S	24S	13N	14N	12S	8D	8D	4S	6S	4S	4S	8N	12S	8D	4S	4S	5S	13S	13N	10N	8D	15S	8S	7N	7N	8S
+391900118085801	128 N17 E34 21DDDD1	39.31665556	-118.14954167	AQ.SINGLE	20110518	20110520	0920	PST	TEST	0920		AQ.SINGLE	20110518	0920	RSLT	AQS07	TRANSMISS	2500.				100VLFL	423.2	500.	100VLFL
+392819118092501	128 N19 E34 33ACAB1    D	39.47198889	-118.15707222	AQ.SINGLE	20110525	20110527	0909	PST	TEST	0909		AQ.SINGLE	20110525	0909	RSLT	AQS07	TRANSMISS	700.				100VLFL	346.3	519.	100VLFL
+360956116003601	162  S20 E53 34CBD 1	36.16558333	-116.00994167	AQ.SINGLE	20000208				TEST																110VLFL
+361311116025501	162  S20 E53 08CCC 1	36.21993611	-116.04960278	AQ.SINGLE	19710330				TEST																100VLFL
+363134116251401	230  S16 E49 26DDC 1	36.52600556	-116.42043333	AQ.SINGLE	19870206	19870206			TEST																110VLFL
+371135116282701	228  S08 E49 35    5	37.19297028	-116.47501895	AQ.MULTI	20091128	20091218			TEST			AQ.MULTI	20091128		RSLT	AQM12	TRANSMISS	110000				120VLCC	1626	2338	120VLCC
+371151116294101	228  S08 E49 34    1	37.19749199	-116.49565067	AQ.MULTI	20100430	20100519			TEST			AQ.MULTI	20100430		RSLT	AQM12	TRANSMISS	40000				120VLCC	3196	4148	120VLCC

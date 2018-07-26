@@ -15,7 +15,7 @@
 import 'bootstrap/dist/css/bootstrap.css';
 import 'font-awesome/css/font-awesome.css';
 import 'leaflet/dist/leaflet.css';
-import 'marker-creator/stylesheets/markers.css';
+import 'marker-creator/stylesheets/markers.css'; 
 // COMMENT OUT FOR NOW:
 // https://github.com/Leaflet/Leaflet.markercluster/issues/874
 // import 'leaflet.markercluster/dist/MarkerCluster.css';
@@ -34,17 +34,20 @@ import { map, control, tileLayer, featureGroup, geoJSON, Icon } from 'leaflet';
 import { basemapLayer, featureLayer } from 'esri-leaflet';
 
 //START user config variables
-var MapX = '-76.2'; //set initial map longitude
-var MapY = '42.7'; //set initial map latitude
-var MapZoom = 7; //set initial map zoom
-var hydraulicsFile = './hydraulics.subf.subf';  //input RDB file
-var scienceBaseRootURL = 'https://www.sciencebase.gov';
+var MapX = '-92'; //set initial map longitude
+var MapY = '40'; //set initial map latitude
+var MapZoom = 4; //set initial map zoom
+var hydraulicsFiles = ['./hydraulics.subf.subf','./gw.nv.hydraulics.rdb'];  //input RDB file
+var scienceBaseRootURL = 'https://www.sciencebase.gov'; 
 var scienceBaseItem = '5ab3d31be4b081f61ab5e3b3';
 //END user config variables 
 
 //global variables
 var theMap;
-var featureCollection;
+var featureCollection = {
+  "type": "FeatureCollection",
+  "features": []
+};
 var layer, sitesLayer, layerLabels;
 var scienceBaseItems = {};
 
@@ -73,8 +76,9 @@ var codeLookup = {
   'C500': 'Related site station number',
   'C100': 'Aquifer',
   'C101': 'Top of interval (ft)',
-  'C102': 'Bottom of interval (ft)'
-}
+  'C102': 'Bottom of interval (ft)',
+  'C714': 'Aquifer' 
+};
 
 var resultsLookup = {
   'PUMP.RT': 'Pumping Rate (gal/min)',
@@ -624,6 +628,507 @@ var testMethodLookup = {
   }
 }
 
+var aquiferLookup = {
+  "100CNZC": {
+    "aqfr_nm": "Cenozoic Erathem"
+  },
+  "100VLFL": {
+    "aqfr_nm": "Cenozoic Valley Fill"
+  },
+  "110QRNR": {
+    "aqfr_nm": "Quaternary System"
+  },
+  "111AFCF": {
+    "aqfr_nm": "Artificial Fill"
+  },
+  "111ALVM": {
+    "aqfr_nm": "Holocene Alluvium"
+  },
+  "111BBTM": {
+    "aqfr_nm": "Bay-Bottom Deposits"
+  },
+  "111BECH": {
+    "aqfr_nm": "Beach Deposits"
+  },
+  "111DUNE": {
+    "aqfr_nm": "Dune (Aeolian) Deposits"
+  },
+  "111DUNED": {
+    "aqfr_nm": "Dune Deposits"
+  },
+  "111FILL": {
+    "aqfr_nm": "Fill"
+  },
+  "111HLCN": {
+    "aqfr_nm": "Holocene Series"
+  },
+  "111LAKE": {
+    "aqfr_nm": "Lake Deposits"
+  },
+  "111SLMR": {
+    "aqfr_nm": "Salt-Marsh Deposits"
+  },
+  "111TRRC": {
+    "aqfr_nm": "Terrace Deposits"
+  },
+  "11220CL": {
+    "aqfr_nm": "20-foot Clay"
+  },
+  "112GLCD": {
+    "aqfr_nm": "Glacial Delta Deposits"
+  },
+  "112GLCLU": {
+    "aqfr_nm": "Glacial Aquifer, Upper"
+  },
+  "112GRDR": {
+    "aqfr_nm": "Gardiners Clay"
+  },
+  "112HBHD": {
+    "aqfr_nm": "Harbor Hill Drift"
+  },
+  "112HBHO": {
+    "aqfr_nm": "Harbor Hill Outwash"
+  },
+  "112HBHT": {
+    "aqfr_nm": "Harbor Hill Till"
+  },
+  "112HHGM": {
+    "aqfr_nm": "Harbor Hill Ground Moraine"
+  },
+  "112HHTM": {
+    "aqfr_nm": "Harbor Hill Terminal Moraine"
+  },
+  "112ICCC": {
+    "aqfr_nm": "Ice-Contact Deposits, Pleistocene"
+  },
+  "112ICNC": {
+    "aqfr_nm": "Ice-Contact Deposits"
+  },
+  "112JMCO": {
+    "aqfr_nm": "Jameco Aquifer"
+  },
+  "112KMTC": {
+    "aqfr_nm": "Kame Terrace Deposits"
+  },
+  "112LAKE": {
+    "aqfr_nm": "Lake Deposits"
+  },
+  "112NTSR": {
+    "aqfr_nm": "North Shore Aquifer"
+  },
+  "112NTSRC": {
+    "aqfr_nm": "North Confining Unit"
+  },
+  "112OTSH": {
+    "aqfr_nm": "Outwash"
+  },
+  "112PGFG": {
+    "aqfr_nm": "Port Washington Confining Unit"
+  },
+  "112PGQF": {
+    "aqfr_nm": "Port Washington Aquifer"
+  },
+  "112PLSC": {
+    "aqfr_nm": "Pleistocene Series"
+  },
+  "112RKGM": {
+    "aqfr_nm": "Ronkonkoma Ground Moraine"
+  },
+  "112RKKD": {
+    "aqfr_nm": "Ronkonkoma Drift"
+  },
+  "112RKKO": {
+    "aqfr_nm": "Ronkonkoma Outwash"
+  },
+  "112RKKT": {
+    "aqfr_nm": "Ronkonkoma Till"
+  },
+  "112RKTM": {
+    "aqfr_nm": "Ronkonkoma Terminal Moraine"
+  },
+  "112SAND": {
+    "aqfr_nm": "Sand"
+  },
+  "112SDGV": {
+    "aqfr_nm": "Sand and Gravel"
+  },
+  "112SMTN": {
+    "aqfr_nm": "Smithtown Clay"
+  },
+  "112TILL": {
+    "aqfr_nm": "Till"
+  },
+  "120VLCC": {
+    "aqfr_nm": "Volcanic Rocks"
+  },
+  "121MNNT": {
+    "aqfr_nm": "Mannetto Gravel"
+  },
+  "200MSZC": {
+    "aqfr_nm": "Mesozoic Erathem"
+  },
+  "210CRCS": {
+    "aqfr_nm": "Cretaceous System"
+  },
+  "211CRCSU": {
+    "aqfr_nm": "Upper Cretaceous Series"
+  },
+  "211LLYD": {
+    "aqfr_nm": "Lloyd Aquifer"
+  },
+  "211MAGT": {
+    "aqfr_nm": "Magothy Aquifer"
+  },
+  "211MGTY": {
+    "aqfr_nm": "Magothy Aquifer"
+  },
+  "211MMGD": {
+    "aqfr_nm": "Monmouth Greensand"
+  },
+  "211MNMG": {
+    "aqfr_nm": "Matawan Group-Magothy Formation"
+  },
+  "211MNMT": {
+    "aqfr_nm": "Monmouth Group"
+  },
+  "211MONM": {
+    "aqfr_nm": "Monmouth Group"
+  },
+  "211MTWN": {
+    "aqfr_nm": "Matawan Formation"
+  },
+  "211RCNF": {
+    "aqfr_nm": "Raritan Confining Unit"
+  },
+  "211RRTN": {
+    "aqfr_nm": "Raritan Formation"
+  },
+  "230TRSC": {
+    "aqfr_nm": "Triassic System"
+  },
+  "231BRCK": {
+    "aqfr_nm": "Brunswick Formation"
+  },
+  "231NWRK": {
+    "aqfr_nm": "Newark Group"
+  },
+  "231PLSD": {
+    "aqfr_nm": "Palisade Diabase"
+  },
+  "231STCN": {
+    "aqfr_nm": "Stockton Formation"
+  },
+  "231TRSCU": {
+    "aqfr_nm": "Upper Triassic Series"
+  },
+  "300CLSC": {
+    "aqfr_nm": "Clastic Rocks"
+  },
+  "300PLZC": {
+    "aqfr_nm": "Paleozoic Erathem"
+  },
+  "320PSLV": {
+    "aqfr_nm": "Pennsylvanian System"
+  },
+  "324PSVL": {
+    "aqfr_nm": "Pottsville Formation"
+  },
+  "330MSSP": {
+    "aqfr_nm": "Mississippian System"
+  },
+  "337POCN": {
+    "aqfr_nm": "Pocono Group"
+  },
+  "337POCO": {
+    "aqfr_nm": "Pocono Group"
+  },
+  "340DVNN": {
+    "aqfr_nm": "Devonian System"
+  },
+  "341CAND": {
+    "aqfr_nm": "Canadaway Group"
+  },
+  "341CNDY": {
+    "aqfr_nm": "Canadaway Group"
+  },
+  "341CNNG": {
+    "aqfr_nm": "Conewango Group"
+  },
+  "341CNNT": {
+    "aqfr_nm": "Conneaut Group"
+  },
+  "341CONT": {
+    "aqfr_nm": "Conneaut Group"
+  },
+  "341DVNNU": {
+    "aqfr_nm": "Devonian, Upper"
+  },
+  "341GENS": {
+    "aqfr_nm": "Genesee Formation"
+  },
+  "341JVWF": {
+    "aqfr_nm": "Java-West Falls Formation"
+  },
+  "341SONY": {
+    "aqfr_nm": "Sonyea Formation"
+  },
+  "344DVNNM": {
+    "aqfr_nm": "Devonian, Middle"
+  },
+  "344ESPS": {
+    "aqfr_nm": "Esopus Formation"
+  },
+  "344HMLN": {
+    "aqfr_nm": "Hamilton Group"
+  },
+  "344ONDG": {
+    "aqfr_nm": "Onondaga Limestone"
+  },
+  "344TLLY": {
+    "aqfr_nm": "Tully Limestone"
+  },
+  "347DVNNL": {
+    "aqfr_nm": "Devonian, Lower"
+  },
+  "347HDBG": {
+    "aqfr_nm": "Helderberg Group"
+  },
+  "347ORSK": {
+    "aqfr_nm": "Oriskany Formation"
+  },
+  "350GRPD": {
+    "aqfr_nm": "Green Pond Conglomerate"
+  },
+  "350SLRN": {
+    "aqfr_nm": "Silurian System"
+  },
+  "351ACBB": {
+    "aqfr_nm": "Akron-Coblesville-Bertie Formations, Undifferentiated"
+  },
+  "351AKRN": {
+    "aqfr_nm": "Akron Dolomite"
+  },
+  "351BNTR": {
+    "aqfr_nm": "Binnewater Sandstone"
+  },
+  "351BRTI": {
+    "aqfr_nm": "Bertie Limestone"
+  },
+  "351CBLK": {
+    "aqfr_nm": "Cobleskill Limestone"
+  },
+  "351CMLS": {
+    "aqfr_nm": "Camillus Shale"
+  },
+  "351ERMS": {
+    "aqfr_nm": "Eromosa Dolomite of Lockport Group"
+  },
+  "351GILD": {
+    "aqfr_nm": "Goat Island Dolomite of Lockport Group"
+  },
+  "351GLPH": {
+    "aqfr_nm": "Guelph Dolomite of Lockport Group"
+  },
+  "351LCKP": {
+    "aqfr_nm": "Lockport Dolomite"
+  },
+  "351LNGD": {
+    "aqfr_nm": "Longwood Shale"
+  },
+  "351SALN": {
+    "aqfr_nm": "Salina Group"
+  },
+  "351SLIN": {
+    "aqfr_nm": "Salina Group"
+  },
+  "351SLRNU": {
+    "aqfr_nm": "Silurian, Upper"
+  },
+  "351SRCS": {
+    "aqfr_nm": "Syracuse Salt"
+  },
+  "351VRNN": {
+    "aqfr_nm": "Vernon Shale"
+  },
+  "354CLIN": {
+    "aqfr_nm": "Clinton Group"
+  },
+  "354CLNN": {
+    "aqfr_nm": "Clinton Group"
+  },
+  "354SLRNM": {
+    "aqfr_nm": "Silurian, Middle"
+  },
+  "354SNGK": {
+    "aqfr_nm": "Shawangunk Formation"
+  },
+  "355LCKP": {
+    "aqfr_nm": "Lockport Dolomite"
+  },
+  "357ALBN": {
+    "aqfr_nm": "Albion Group"
+  },
+  "357CLIN": {
+    "aqfr_nm": "Clinton Group"
+  },
+  "357DECW": {
+    "aqfr_nm": "Decew Dolomite of Clinton Group"
+  },
+  "357GAPR": {
+    "aqfr_nm": "Gasport Dolomite of Lockport Group"
+  },
+  "357GRMB": {
+    "aqfr_nm": "Grimsby Formation of Medina Group"
+  },
+  "357IRDQ": {
+    "aqfr_nm": "Irondequoit Limestone of Clinton Group"
+  },
+  "357MDIN": {
+    "aqfr_nm": "Medina Group"
+  },
+  "357NEHG": {
+    "aqfr_nm": "Neahga Shale of Clinton Group"
+  },
+  "357RNLS": {
+    "aqfr_nm": "Reynales Limestone of Clinton Group"
+  },
+  "357ROCR": {
+    "aqfr_nm": "Rochester Shale of Clinton Group"
+  },
+  "357SLRNL": {
+    "aqfr_nm": "Silurian, Lower"
+  },
+  "357TRLD": {
+    "aqfr_nm": "Thorold Sandstone of Medina Group"
+  },
+  "357WRLP": {
+    "aqfr_nm": "Whirlpool Sandstone of Medina Group"
+  },
+  "360ODVC": {
+    "aqfr_nm": "Ordovician System"
+  },
+  "361LRRN": {
+    "aqfr_nm": "Lorraine Shale"
+  },
+  "361ODVCU": {
+    "aqfr_nm": "Ordovician, Upper"
+  },
+  "361OSWG": {
+    "aqfr_nm": "Oswego Sandstone"
+  },
+  "361QNSN": {
+    "aqfr_nm": "Queenston Shale"
+  },
+  "361UTIC": {
+    "aqfr_nm": "Utica Shale"
+  },
+  "364BRKR": {
+    "aqfr_nm": "Berkshire Schist"
+  },
+  "364CHZY": {
+    "aqfr_nm": "Chazy Group"
+  },
+  "364CNJR": {
+    "aqfr_nm": "Canajoharie Shale"
+  },
+  "364NMKL": {
+    "aqfr_nm": "Normanskill Formation"
+  },
+  "364ODVCM": {
+    "aqfr_nm": "Ordovician, Middle"
+  },
+  "364SKHL": {
+    "aqfr_nm": "Snake Hill Formation"
+  },
+  "364TBRV": {
+    "aqfr_nm": "Trenton-Black River Group"
+  },
+  "364TREN": {
+    "aqfr_nm": "Trenton Group"
+  },
+  "364TRNN": {
+    "aqfr_nm": "Trenton Group"
+  },
+  "364WLMC": {
+    "aqfr_nm": "Walloomsac Slate"
+  },
+  "367BKMN": {
+    "aqfr_nm": "Beekmantown Group"
+  },
+  "367ODVCL": {
+    "aqfr_nm": "Ordovician, Lower"
+  },
+  "367PLTN": {
+    "aqfr_nm": "Poultney Slate"
+  },
+  "367TBHL": {
+    "aqfr_nm": "Tribes Hill Limestone"
+  },
+  "370CMBR": {
+    "aqfr_nm": "Cambrian System"
+  },
+  "371CMBRM": {
+    "aqfr_nm": "Middle Cambrian Series"
+  },
+  "371CMBRU": {
+    "aqfr_nm": "Cambrian, Upper"
+  },
+  "371LLFL": {
+    "aqfr_nm": "Little Falls Dolomite"
+  },
+  "371PSDM": {
+    "aqfr_nm": "Potsdam Sandstone"
+  },
+  "371TCSQ": {
+    "aqfr_nm": "Taconic Sequence"
+  },
+  "371THRS": {
+    "aqfr_nm": "Theresa Dolomite"
+  },
+  "374CMBRM": {
+    "aqfr_nm": "Cambrian, Middle"
+  },
+  "374SKBG": {
+    "aqfr_nm": "Stockbridge Group"
+  },
+  "377BULL": {
+    "aqfr_nm": "Bull Slate"
+  },
+  "377CMBRL": {
+    "aqfr_nm": "Lower Cambrian Series"
+  },
+  "377DLTN": {
+    "aqfr_nm": "Dalton Formation"
+  },
+  "377EZVB": {
+    "aqfr_nm": "Elizaville and Berkshire Formations"
+  },
+  "377NSSU": {
+    "aqfr_nm": "Nassau Formation"
+  },
+  "377PGQY": {
+    "aqfr_nm": "Poughquay Quartzite"
+  },
+  "377SCCK": {
+    "aqfr_nm": "Schodack Formation"
+  },
+  "377SSNG": {
+    "aqfr_nm": "Stissing Dolomite"
+  },
+  "400BCPX": {
+    "aqfr_nm": "Basement Complex"
+  },
+  "400PCMB": {
+    "aqfr_nm": "Precambrian Erathem"
+  },
+  "BASEMENT": {
+    "aqfr_nm": "Basement"
+  },
+  "BEDROCK": {
+    "aqfr_nm": "Bedrock"
+  }
+}
+
 //instantiate map
 $(document).ready(function () {
   console.log('Application Information: ' + process.env.NODE_ENV + ' ' + 'version ' + VERSION);
@@ -794,7 +1299,7 @@ function setupFilters() {
       var filterObj = [
         {
           'name': 'Aquifer',
-          'property': layer.feature.properties.C100,
+          'property': layer.feature.properties.C714,
           'divID': '#aquiferFilter'
         },
         {
@@ -810,7 +1315,7 @@ function setupFilters() {
       ];
 
       $.each(filterObj, function (idx, obj) {
-        if (obj.property.length > 0) {
+        if (obj.property && obj.property.length > 0) {
 
           var data = {
             'id': index,
@@ -822,6 +1327,9 @@ function setupFilters() {
             var newOption = new Option(data.text, data.id, false, false);
             $(obj.divID).append(newOption).trigger('change');
           }
+        }
+        else {
+          console.log('Site missing some properties to add to filters:',layer.feature.properties)
         }
       });
 
@@ -888,7 +1396,11 @@ function checkScienceBase() {
 }
 
 function openPopup(e) {
+
   console.log('site clicked', e.layer.feature.properties);
+
+  var popup = L.popup({ minWidth: 320 })
+    .setLatLng(e.latlng);
 
   var popupContent = '';
   var siteID;
@@ -910,12 +1422,71 @@ function openPopup(e) {
       //make siteID a hyperlink
       if (shortKey === 'C001') {
         siteID = property;
-        popupContent += '<b>' + description + ':</b>&nbsp;&nbsp;<a href="https://waterdata.usgs.gov/ny/nwis/inventory/?site_no=' + property + '" target="_blank">' + property + '</a></br>';
+        popupContent += '<b>' + description + ':</b>&nbsp;&nbsp;<a href="https://waterdata.usgs.gov/nwis/inventory/?site_no=' + property + '" target="_blank">' + property + '</a></br>';
+
+        if (e.layer.feature.properties['C099']) {
+          var dateString = e.layer.feature.properties['C099'];
+          var d = new Date(dateString.substring(0, 4) + '-' + dateString.substring(4, 6) + '-' + dateString.substring(6, 8));
+          d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
+          var startDate = new Date(d.setDate(d.getDate() - 3));
+          var endDate = new Date(d.setDate(d.getDate() + 10));
+          var startDateText = startDate.getFullYear() + '-' + (startDate.getMonth() + 1) + '-' + startDate.getDate();
+          var endDateText = endDate.getFullYear() + '-' + (endDate.getMonth() + 1) + '-' + endDate.getDate();
+          console.log('startDate',startDateText,'endDate',endDateText)
+
+          //get gwlevel data
+          var DDcodes = ['62610','62611','72019'];
+          $.each(DDcodes, function (idx, code) {
+            var url = 'https://nwis.waterservices.usgs.gov/nwis/iv/?format=rdb&sites=' + siteID + '&startDT=' + startDateText + '&endDT=' +  endDateText + '&parameterCd=' + code + '&siteStatus=all';
+
+            addNWISdata(url,siteID,popup,'Water Level Data');
+          });
+
+          //get pumping data
+          var code = '00058';
+          var url = 'https://nwis.waterservices.usgs.gov/nwis/iv/?format=rdb&sites=' + siteID + '&startDT=' + startDateText + '&endDT=' +  endDateText + '&parameterCd=' + code + '&siteStatus=all';
+
+          addNWISdata(url,siteID,popup,'Pumping Rate Data');    
+
+        }
+      }
+
+      //get aquifer code
+      else if (shortKey === 'C714') {
+        var aqText = aquiferLookup[property].aqfr_nm
+        popupContent += '<b>' + description + ':</b>&nbsp;&nbsp;' + aqText + ' (' + property + ')</br>';
       }
 
       //build observation well list
       else if (shortKey === 'obvervationWells' && property.length > 0) {
-        popupContent += '<b>Observation Well(s):</b>&nbsp;&nbsp' + property.map(siteID => '<a href="https://waterdata.usgs.gov/ny/nwis/inventory/?site_no=' + siteID + '" target="_blank">' + siteID + '</a>').join(', ') + '</br>';
+        popupContent += '<b>Observation Well(s):</b>&nbsp;&nbsp' + property.map(siteID => '<a href="https://waterdata.usgs.gov/nwis/inventory/?site_no=' + siteID + '" target="_blank">' + siteID + '</a>').join(', ') + '</br>';
+
+        if (e.layer.feature.properties['C099']) {
+          var dateString = e.layer.feature.properties['C099'];
+          var d = new Date(dateString.substring(0, 4) + '-' + dateString.substring(4, 6) + '-' + dateString.substring(6, 8));
+          d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
+          var startDate = new Date(d.setDate(d.getDate() - 3));
+          var endDate = new Date(d.setDate(d.getDate() + 10));
+          var startDateText = startDate.getFullYear() + '-' + (startDate.getMonth() + 1) + '-' + startDate.getDate();
+          var endDateText = endDate.getFullYear() + '-' + (endDate.getMonth() + 1) + '-' + endDate.getDate();
+          console.log('startDate',startDateText,'endDate',endDateText)
+
+          $.each(property, function (idx, siteID) {
+            //get gwlevel data
+            var DDcodes = ['62610','62611','72019'];
+            $.each(DDcodes, function (idx, code) {
+              var url = 'https://nwis.waterservices.usgs.gov/nwis/iv/?format=rdb&sites=' + siteID + '&startDT=' + startDateText + '&endDT=' +  endDateText + '&parameterCd=' + code + '&siteStatus=all';
+  
+              addNWISdata(url,siteID,popup,'Water Level Data');
+            });
+  
+            //get pumping data
+            var code = '00058';
+            var url = 'https://nwis.waterservices.usgs.gov/nwis/iv/?format=rdb&sites=' + siteID + '&startDT=' + startDateText + '&endDT=' +  endDateText + '&parameterCd=' + code + '&siteStatus=all';
+  
+            addNWISdata(url,siteID,popup,'Pumping Rate Data');   
+          }); 
+        }
       }
 
       //convert date
@@ -992,20 +1563,18 @@ function openPopup(e) {
 
       $.each(obj, function (key, value) {
 
-        console.log('test', key, value);
-
         //console.log(key,value);
         if (key === 'report' && value) {
-          popupContent += '<b>Report:</b>&nbsp;&nbsp;<a href="' + value.url + '" target="_blank">' + value.url + '</a></br>';
+          popupContent += '<div id="reportDiv"><a href="' + value.url + '" target="_blank"><b>Report</b></a></div>';
         }
-        if (key === 'hydraulicData' && value) popupContent += '<b>Hydraulic Data:</b>&nbsp;&nbsp;<a href="' + value.url + '" target="_blank">' + value.fileName + '</a></br>';
+        if (key === 'hydraulicData' && value) popupContent += '<b>Water Level Data:</b>&nbsp;&nbsp;<a href="' + value.url + '" target="_blank">' + siteID + '</a></br>';
         if (key === 'analysis' && value.length > 0) {
           var linkList = '';
           $.each(value, function (i, v) {
             //console.log(i,v)
-            linkList += '<a href="' + v.url + '" target="_blank">' + v.fileName + '</a>&nbsp;&nbsp;'
+            linkList += '<b>Analysis:</b>&nbsp;&nbsp;<a href="' + v.url + '" target="_blank">' + siteID + '</a>'
           });
-          popupContent += '<b>Analysis:</b>&nbsp;&nbsp;' + linkList + '</br>';
+          popupContent += linkList + '</br>';
         }
       });
     }
@@ -1013,18 +1582,52 @@ function openPopup(e) {
 
   console.log('scienceBase match found for site:', siteID, SBmatchFound);
 
-  var popup = L.popup({ minWidth: 320 })
-    .setLatLng(e.latlng)
-    .setContent(popupContent)
-    .openOn(theMap);
+  popup.setContent(popupContent).openOn(theMap);
+}
+
+function addNWISdata(url,siteID,popup,text) {
+
+  console.log("URL",url)
+  $.ajax({
+    url: url,
+    success: function (data) {
+      data = data.split(/\r?\n/);
+
+      if (data[0] === '#  No sites found matching all criteria') {
+        console.log(text,siteID,'NO DATA');
+        return false;
+      }
+
+      var $popupContent = $('<div/>').html(popup.getContent());
+      
+      console.log(text,siteID,"FOUND SOME DATA");
+      
+      //if the div doesnt exist yet, create and add this item
+      if ($popupContent.find('#' + camelize(text)).length === 0) {
+
+        //make sure these get inserted before the report div if it exists
+        if ($popupContent.find('#reportDiv').length > 0) {
+          $popupContent.find('#reportDiv').before('<div id="' + camelize(text) + '"><b>' + text + ':</b>&nbsp;&nbsp<a href="' + url + '" target="_blank">' + siteID + '</a></div>');
+          popup.setContent($popupContent.html()) 
+        }
+        //otherwise just append to the end
+        else {
+          $popupContent.append('<div id="' + camelize(text) + '"><b>' + text + ':</b>&nbsp;&nbsp<a href="' + url + '" target="_blank">' + siteID + '</a></div>');
+          popup.setContent($popupContent.html()) 
+        }
+      }
+
+      //otherwise just append the item
+      else {
+        $popupContent.find('#' + camelize(text)).append(', <a href="' + url + '" target="_blank">' + siteID + '</a>');
+        popup.setContent($popupContent.html())
+      }
+    },
+    dataType: "text"
+  });
 }
 
 function drawSites(sites) {
-
-  featureCollection = {
-    "type": "FeatureCollection",
-    "features": []
-  };
 
   $.each(sites, function (index, site) {
 
@@ -1065,8 +1668,15 @@ function drawSites(sites) {
       });
 
       //special case for UNKN/SPEC.CAP case
-      if ((site.C743 === 'UNKN' || site.C743 === '') && searchResultsList('SPEC.CAP', [{ 'C744': site.C744, 'C105': site.C105 }])) {
-        testType = "Specific-Capacity Test";
+      if (site.C743 === 'UNKN' || site.C743 === '') {
+
+        if (searchResultsList('SPEC.CAP', [{ 'C744': site.C744, 'C105': site.C105 }])) {
+          testType = "Specific-Capacity Test";
+        }
+        else {
+          console.log("Cant find testType for:",site)
+        }
+        
       }
 
       //create main feature
@@ -1079,7 +1689,7 @@ function drawSites(sites) {
         "properties": {
           'C001': site.C001,
           'C012': site.C012,
-          'C100': site.C100,
+          'C714': site.C714,
           'C101': site.C101,
           'C102': site.C102,
           'C099': site.C099,
@@ -1106,10 +1716,13 @@ function drawSites(sites) {
       //considtional classString
       var classString = iconLookup[feature.properties.testType];
 
-      addToLegend(classString);
+      if (classString) {
+        addToLegend(classString);
 
-      var icon = L.divIcon({ className: classString })
-      return L.marker(latlng, { icon: icon });
+        var icon = L.divIcon({ className: classString })
+        return L.marker(latlng, { icon: icon });
+      }
+
     }
   })
 
@@ -1144,20 +1757,24 @@ function addToLegend(classString) {
 }
 
 function loadSites() {
-  console.log('in loadSites')
 
-  $.ajax({
-    url: hydraulicsFile,
-    success: function (data) {
-      $('#loading').hide();
-      data = parseRDB(data);
-      drawSites(data)
-    },
-    dataType: "text",
-    complete: function () {
-      // call a function on complete 
-    }
+  $(hydraulicsFiles).each(function (i, hydraulicsFile) {
+    console.log('in loadSites. loading:',hydraulicsFile)
+
+    $.ajax({
+      url: hydraulicsFile,
+      success: function (data) {
+        $('#loading').hide();
+        data = parseRDB(data);
+        drawSites(data)
+      },
+      dataType: "text",
+      complete: function () {
+        // call a function on complete 
+      }
+    });
   });
+
 }
 
 function parseRDB(data) {
@@ -1222,7 +1839,7 @@ function setBasemap(baseMap) {
   layer = basemapLayer(baseMap);
   theMap.addLayer(layer);
   if (layerLabels) theMap.removeLayer(layerLabels);
-  if (baseMap === 'Gray' || baseMap === 'DarkGray' || baseMap === 'Imagery' || baseMap === 'ImageryClarity' || baseMap === 'Terrain') {
+  if (baseMap === 'Gray' || baseMap === 'DarkGray' || baseMap === 'Imagery' || baseMap === 'Terrain') {
     layerLabels = basemapLayer(baseMap + 'Labels');
     theMap.addLayer(layerLabels);
   }

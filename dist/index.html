@@ -30,6 +30,19 @@
 
                     <div class="accordion" id="accordion">
                         <div class="card mb-0 sidebar-panel">
+
+                            <div class="card-header" data-toggle="collapse" data-parent="#accordion" aria-expanded="true" href="#layersPanel">
+                                    <a class="card-title" >
+                                        Explanation
+                                    </a>
+                                </div>
+                                <div id="layersPanel" class="card-body collapse show" data-parent="#accordion">
+                                    <div class="card">
+                                        <div id="legend" class="card-body">
+                                        </div>
+                                    </div>       
+                                </div>
+
                             <div class="card-header collapsed" data-toggle="collapse" data-parent="#accordion" href="#optionsPanel">
                                 <a class="card-title" >
                                     Filters
@@ -50,7 +63,7 @@
                                         </select> -->
 
                                         <h5 class="card-title" id="aqCriteria">Aquifer Test Criteria</h5>
-                                        <select class="appFilter" id="aquiferFilter" data-selectname="Select an Aquifer" data-code="C100" multiple>
+                                        <select class="appFilter" id="aquiferFilter" data-selectname="Select an Aquifer" data-code="C714" multiple>
                                         </select>
                                         <select class="appFilter" id="testTypeFilter" data-selectname="Select a Test Type" data-code="testType" multiple>
                                         </select>
@@ -65,19 +78,7 @@
             
                                 </div> 
                             </div>
-
-                            <div class="card-header collapsed" data-toggle="collapse" data-parent="#accordion" href="#layersPanel">
-                                <a class="card-title" >
-                                    Explanation
-                                </a>
-                            </div>
-                            <div id="layersPanel" class="card-body collapse" data-parent="#accordion">
-                                <div class="card">
-                                    <div id="legend" class="card-body">
-                                    </div>
-                                </div>       
-                            </div>
-    
+   
                             <div class="card-header collapsed" data-toggle="collapse" data-parent="#accordion" href="#basemapsPanel">
                                 <a class="card-title" >
                                     Basemaps
