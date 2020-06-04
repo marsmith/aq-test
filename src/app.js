@@ -10,46 +10,64 @@
 
 // updates:
 // 03.15.2018 mjs - Created
+// 04.19.2019 mjs - Overhaul with new sciencebase
+// 01.22.2020 mjs - Fix build, get new sciencebase setup deployed
 
 //CSS imports
 import 'bootstrap/dist/css/bootstrap.css';
-import 'font-awesome/css/font-awesome.css';
+import 'marker-creator/app/stylesheets/css/markers.css';
 import 'leaflet/dist/leaflet.css';
-import 'marker-creator/stylesheets/markers.css'; 
-// COMMENT OUT FOR NOW:
-// https://github.com/Leaflet/Leaflet.markercluster/issues/874
-// import 'leaflet.markercluster/dist/MarkerCluster.css';
-// import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+import 'jquery-typeahead/dist/jquery.typeahead.min.css';
 import 'select2/dist/css/select2.css';
 import './styles/main.css';
 
 //JS imports
-import 'bootstrap/js/dist/util';
-import 'bootstrap/js/dist/modal';
-import 'bootstrap/js/dist/collapse';
-import 'bootstrap/js/dist/tab';
+import 'bootstrap';
+import 'jquery-typeahead';
 import 'select2';
-// import 'leaflet.markercluster';
+import 'tokml';
+
 import { map, control, tileLayer, featureGroup, geoJSON, Icon } from 'leaflet';
-import { basemapLayer, featureLayer } from 'esri-leaflet';
+import { basemapLayer } from 'esri-leaflet';
+import { config, library, dom } from '@fortawesome/fontawesome-svg-core';
+import { faBars } from '@fortawesome/free-solid-svg-icons/faBars';
+import { faInfo } from '@fortawesome/free-solid-svg-icons/faInfo';
+import { faPlus } from '@fortawesome/free-solid-svg-icons/faPlus';
+import { faMinus } from '@fortawesome/free-solid-svg-icons/faMinus';
+import { faExclamationCircle } from '@fortawesome/free-solid-svg-icons/faExclamationCircle';
+import { faQuestionCircle } from '@fortawesome/free-solid-svg-icons/faQuestionCircle';
+import { faCog } from '@fortawesome/free-solid-svg-icons/faCog';
+
+import { faTwitterSquare } from '@fortawesome/free-brands-svg-icons/faTwitterSquare';
+import { faFacebookSquare } from '@fortawesome/free-brands-svg-icons/faFacebookSquare';
+import { faGooglePlusSquare } from '@fortawesome/free-brands-svg-icons/faGooglePlusSquare';
+import { faGithubSquare } from '@fortawesome/free-brands-svg-icons/faGithubSquare';
+import { faFlickr } from '@fortawesome/free-brands-svg-icons/faFlickr';
+import { faYoutubeSquare } from '@fortawesome/free-brands-svg-icons/faYoutubeSquare';
+import { faInstagram } from '@fortawesome/free-brands-svg-icons/faInstagram';
+
+library.add(faBars, faPlus, faMinus, faInfo, faExclamationCircle, faCog, faQuestionCircle, faTwitterSquare, faFacebookSquare,faGooglePlusSquare, faGithubSquare, faFlickr, faYoutubeSquare, faInstagram );
+config.searchPseudoElements = true;
+dom.watch();
 
 //START user config variables
-var MapX = '-92'; //set initial map longitude
-var MapY = '40'; //set initial map latitude
-var MapZoom = 4; //set initial map zoom
-var hydraulicsFiles = ['./hydraulics.subf.subf','./gw.nv.hydraulics.rdb'];  //input RDB file
+var MapX = '-75.5'; //set initial map longitude
+var MapY = '42.5'; //set initial map latitude
+var MapZoom = 7; //set initial map zoom
+var hydraulicsFiles = ['./hydraulics.subf.subf'];  //input RDB file
 var scienceBaseRootURL = 'https://www.sciencebase.gov'; 
-var scienceBaseItem = '5ab3d31be4b081f61ab5e3b3';
+var scienceBaseItem = '5c0e8232e4b0c53ecb2ad8df';
 //END user config variables 
 
 //global variables
 var theMap;
 var featureCollection = {
-  "type": "FeatureCollection",
-  "features": []
+  'type': 'FeatureCollection',
+  'features': []
 };
 var layer, sitesLayer, layerLabels;
 var scienceBaseItems = {};
+var sitesLoaded = 0;
 
 var codeLookup = {
   'C001': 'Site ID (station number)',
@@ -77,7 +95,15 @@ var codeLookup = {
   'C100': 'Aquifer',
   'C101': 'Top of interval (ft)',
   'C102': 'Bottom of interval (ft)',
-  'C714': 'Aquifer' 
+  'C714': 'Aquifer',
+  'testType': 'Test Type',
+  'PUMP.DURATION': 'Pump Duration',
+  'PUMP.RT': 'Pump Rate',
+  'SAT.HORZ.COND': 'Saturated Horizontal Conductivity',
+  'SAT.VERT.COND': 'Saturated Vertical Conductivity',
+  'STOR.COEF': 'Storage Coefficient',
+  'TRANSMISS': 'Transmissivity',
+  'SPEC.CAP': 'Specific Capacity'
 };
 
 var resultsLookup = {
@@ -87,7 +113,16 @@ var resultsLookup = {
   'TRANSMISS': 'Transmissivity (ft&#178/d)',
   'SAT.HORZ.COND': 'Hydraulic conductivity (ft/d)',
   'STOR.COEF': 'Storage coefficient',
-}
+};
+
+var iconLookup2 = {
+  'Unknown': '#8CACAF',
+  'Slug Test': '#3092F4',
+  'Multi-Well Aquifer Test': '#A06FF9',
+  'Single-Well Aquifer Test': '#FB833C',
+  'Specific-Capacity Test': '#F15B74',
+  'Recovery Test': '#FCDC76',
+};
 
 var iconLookup = {
   'Unknown': 'wmm-pin wmm-mutedblue wmm-icon-circle wmm-icon-white wmm-size-25',
@@ -95,7 +130,8 @@ var iconLookup = {
   'Multi-Well Aquifer Test': 'wmm-pin wmm-purple wmm-icon-circle wmm-icon-white wmm-size-25',
   'Single-Well Aquifer Test': 'wmm-pin wmm-orange wmm-icon-circle wmm-icon-white wmm-size-25',
   'Specific-Capacity Test': 'wmm-pin wmm-mutedred wmm-icon-circle wmm-icon-white wmm-size-25',
-}
+  'Recovery Test': 'wmm-pin wmm-yellow wmm-icon-circle wmm-icon-white wmm-size-25',
+};
 
 var testMethodLookup = {
   'AQA01': {
@@ -341,6 +377,10 @@ var testMethodLookup = {
   'AQR03': {
     'testType': 'Recovery Test',
     'testExplanation': 'Moench'
+  },
+  'AQR04': {
+    'testType': 'Recovery Test',
+    'testExplanation': 'Picking'
   },
   'AQS01': {
     'testType': 'Slug Test',
@@ -626,7 +666,7 @@ var testMethodLookup = {
     'testType': 'Laboratory Test',
     'testExplanation': 'Gas pycnometer - constant'
   }
-}
+};
 
 var aquiferLookup = {
   "100CNZC": {
@@ -1127,7 +1167,7 @@ var aquiferLookup = {
   "BEDROCK": {
     "aqfr_nm": "Bedrock"
   }
-}
+};
 
 //instantiate map
 $(document).ready(function () {
@@ -1137,7 +1177,7 @@ $(document).ready(function () {
   Icon.Default.imagePath = './images/';
 
   //create map
-  theMap = map('mapDiv', { zoomControl: false });
+  theMap = map('mapDiv', { preferCanvas: true, zoomControl: false });
 
   //add zoom control with your options
   control.zoom({ position: 'topright' }).addTo(theMap);
@@ -1156,8 +1196,6 @@ $(document).ready(function () {
   sitesLayer = featureGroup().addTo(theMap);
 
   loadSites();
-  checkScienceBase();
-  initializeFilters();
 
   /*  START EVENT HANDLERS */
   $('.basemapBtn').click(function () {
@@ -1187,6 +1225,14 @@ $(document).ready(function () {
     resetFilters();
   });
 
+	$('#exportGeoJSON').click(function() {
+		downloadData('geojson');
+	});	
+
+	$('#exportCSV').click(function() {
+		downloadData('csv');
+	});	
+
   sitesLayer.on('click', function (e) {
     openPopup(e);
   });
@@ -1200,54 +1246,86 @@ function resetFilters() {
   var geoJSONlayer = geoJSON(featureCollection, {
     pointToLayer: function (feature, latlng) {
 
-      //considtional classString
-      var classString = iconLookup[feature.properties.testType];
+      var color = iconLookup2[feature.properties.testType];
+      if (color) {
 
-      addToLegend(classString);
+        addToLegend(color);
 
-      var icon = L.divIcon({ className: classString })
-      return L.marker(latlng, { icon: icon });
-    }
+        return L.circleMarker(latlng, {
+
+          radius: 8,
+          fillColor: color,
+          color: "#000",
+          weight: .25,
+          opacity: 1,
+          fillOpacity: 0.8
+        });
+      }
+
+      else {
+        console.warn('Marker icon not found for:',feature.properties)
+        return false;
+      }
+		}
   });
 
   sitesLayer.addLayer(geoJSONlayer);
+  theMap.fitBounds(sitesLayer.getBounds(), {padding: [100,100]});
 
   //clear filter selections
-  $('.appFilter').each(function (i, obj) {
+  $('.appFilter').not('#siteIDFilter').each(function (i, obj) {
     var divID = $(obj).attr('id');
     $('#' + divID).val(null).trigger('change');
+  });
+
+  //clear siteIDs
+  $('#siteIDFilterWrapper .typeahead__cancel-button').each(function( index ) {
+    $(this).trigger('click');
   });
 }
 
 function applyFilters() {
 
-  //first check there are filters selected
-  if ($('.appFilter option:selected').map(function () { return $(this).text(); }).length === 0) {
-    alert('No valid filter selections were found');
-    resetFilters();
-    return;
-  }
+  var filterFound = false;
 
   $('.appFilter').each(function (i, obj) {
     var divID = $(obj).attr('id');
-    var selectName = $(obj).data("selectname");
     var selectCode = $(obj).data("code");
 
-    var filters = $('#' + divID).select2('data');
-    var filterArray = filters.map(item => item.text);
+    console.log('in applyfilters:', divID)
 
-    //make copy of JSON
-    var newGeoJSON = sitesLayer.toGeoJSON();
-    console.log('applying filters to:', newGeoJSON.features.length, 'sites');
+    var filterArray = [];
 
-    if (filters.length > 0) {
+    if (divID == 'siteIDFilter') {
+      $('.typeahead__label span').not('.typeahead__cancel-button').each(function( index ) {
+        filterArray.push($( this ).text());
+        console.log('found',$( this ).text(), filterArray)
+      });
+    }
 
-      console.log('found filter', divID, selectName, selectCode, filters, filterArray);
+    else {
+      filterArray = $('#' + divID + ' option:selected').toArray().map(item => item.text);
+    }
+
+    if (filterArray.length > 0) {
+      filterFound = true;
+        
+      //make copy of JSON
+      var newGeoJSON = sitesLayer.toGeoJSON();
+      console.log('applying filters to:', newGeoJSON.features.length, 'sites');
+
+      console.log('found filter', divID, selectCode, filters, filterArray);
       var found = false;
       var foundCount = 0;
       var geoJSONlayer = geoJSON(newGeoJSON, {
         filter: function (feature) {
-          if (filterArray.indexOf(feature.properties[selectCode]) !== -1) {
+
+          var selectionCode = feature.properties[selectCode];
+
+          //special exception for report
+          if (feature.properties[selectCode] && selectCode == 'report') selectionCode = feature.properties[selectCode].title
+
+          if (filterArray.indexOf(selectionCode) !== -1) {
             found = true;
             foundCount +=1;
             return true;
@@ -1256,89 +1334,122 @@ function applyFilters() {
         },
         pointToLayer: function (feature, latlng) {
 
-          //considtional classString
-          var classString = iconLookup[feature.properties.testType];
-
-          addToLegend(classString);
-
-          var icon = L.divIcon({ className: classString })
-          return L.marker(latlng, { icon: icon });
+          var color = iconLookup2[feature.properties.testType];
+          if (color) {
+    
+            addToLegend(color);
+    
+            return L.circleMarker(latlng, {
+    
+              radius: 8,
+              fillColor: color,
+              color: "#000",
+              weight: .25,
+              opacity: 1,
+              fillOpacity: 0.8
+            });
+          }
+    
+          else {
+            console.warn('Marker icon not found for:',feature.properties)
+            return false;
+          }
         }
       });
 
       console.log('found',foundCount,'features for',selectCode,filterArray)
 
       if (!found) alert('No features found that meet these query criteria');
+      
       sitesLayer.clearLayers();
       sitesLayer.addLayer(geoJSONlayer);
+      theMap.fitBounds(sitesLayer.getBounds(), {padding: [100,100]});
+      
     }
   });
-}
 
-function initializeFilters() {
-  $('.appFilter').each(function (i, obj) {
-
-    var divID = $(obj).attr('id');
-    var selectName = $(obj).data('selectname');
-
-    $('#' + divID).select2({
-      placeholder: selectName,
-      width: 'auto'
-    });
-  });
+  //if nothing was found after the loop, show alert
+  if (!filterFound) alert('No valid filter selections were found');
 }
 
 function setupFilters() {
-  //get each individual site
-  sitesLayer.eachLayer(function (geoJSON) {
 
-    //loop over site properties to populate filters
-    var index = 0;
-    geoJSON.eachLayer(function (layer) {
+  //loop over select2 filter divs 
+  $( ".appFilter" ).each(function( i, obj ) {
 
-      var filterObj = [
-        {
-          'name': 'Aquifer',
-          'property': layer.feature.properties.C714,
-          'divID': '#aquiferFilter'
-        },
-        {
-          'name': 'Test Type',
-          'property': layer.feature.properties.testType,
-          'divID': '#testTypeFilter'
-        },
-        {
-          'name': 'Test Method',
-          'property': layer.feature.properties.C743,
-          'divID': '#testMethodFilter'
-        }
-      ];
+    var code = $(obj).data('code');
+    var id = $(obj).attr('id');
+    var selectName = $(obj).attr('title');
 
-      $.each(filterObj, function (idx, obj) {
-        if (obj.property && obj.property.length > 0) {
+    //bail if this is siteID filter
+    if (id == 'siteIDFilter') return;
 
-          var data = {
-            'id': index,
-            'text': obj.property
-          };
-
-          //only add new filter option if it doesn't exist
-          if ($(obj.divID).has("option:contains('" + data.text + "')").length === 0) {
-            var newOption = new Option(data.text, data.id, false, false);
-            $(obj.divID).append(newOption).trigger('change');
-          }
-        }
-        else {
-          console.log('Site missing some properties to add to filters:',layer.feature.properties)
-        }
-      });
-
-      index += 1;
+    //initialize select2 filter
+    $('#' + id).select2({
+      placeholder: selectName,
+      width: '100%'
     });
+
+    //get each individual site
+    $.each(featureCollection.features, function (index, feature) {
+
+      //make sure we have a code and there is some text
+      if (code && code.length > 0 && feature.properties[code]) {
+
+        var text;
+
+        //special case for report filter
+        if (code == 'report') {
+          text = feature.properties[code].title.trim();
+        }
+
+        else {
+          text = feature.properties[code].trim();
+        }
+
+        //only add new filter option if it doesn't exist
+        if ($('#' + id).has("option:contains('" + text + "')").length === 0) {
+          $('#' + id).append('<option value="'+index+'">'+text+'</option>');
+        }
+      }
+      else {
+        //console.log('Site missing some properties to add to filters:',feature.properties)
+      }
+    });
+
+    $('#' + id).trigger('change');
+
   });
+
+  //setup siteID typeahead
+  var siteIDarray = [];
+  $.each(featureCollection.features, function (index, feature) {
+    siteIDarray.push(feature.properties['C001'])
+  })
+
+  $.typeahead({
+    input: '.js-typeahead',
+    order: "desc",
+    source: {
+        data: siteIDarray
+    },
+    cancelButton: false,
+    multiselect: {
+      limit: 5
+    },
+    callback: {
+      onInit: function (node) {
+          //console.log('Typeahead Initiated on ', $(node).attr('id'));
+      }
+    }
+  });
+
 }
 
 function checkScienceBase() {
+
+  //loop over entire sciencebase structure and get all data
+  var done = false;
 
   //first ping main endpoint, check hasChildren=true
   $.getJSON(scienceBaseRootURL + '/catalog/item/' + scienceBaseItem + '?format=json', function (main) {
@@ -1346,45 +1457,155 @@ function checkScienceBase() {
       //console.log('scienceBase item has children');
 
       $.getJSON(scienceBaseRootURL + '/catalog/items?parentId=' + scienceBaseItem + '&format=json', function (children) {
-        //console.log('here',children);
+        //console.log('All children:',children);
 
         //now we have all the children (USGS sites), loop over
         $.each(children.items, function (index, site) {
-          //console.log('child item:',site);
+          //console.log('Main child item:',site.title);
 
-          //get all data for each child
-          $.getJSON(site.link.url, function (data) {
-            //console.log('siteData:',data);
+          var section = 'PUBLICATIONS';
+          if (site.title.indexOf('DATA RELEASES') !== -1) section = 'DATA RELEASES';
 
-            var siteID = data.title.split('_')[0];
-            var report = {
-              "reportTitle": data.webLinks[0].title,
-              "url": data.webLinks[0].uri
-            };
-            var hydraulicData;
-            var analysis = [];
+          //loop over publications
+          if (site.hasChildren) {
 
-            //loop over attached files
-            $.each(data.files, function (index, file) {
-              //console.log('file',file);
+            $.getJSON(scienceBaseRootURL + '/catalog/items?parentId=' + site.id + '&format=json', function (sectionChildren) {
+              //console.log(section + ' children found:',sectionChildren.items.length);
 
-              if (file.contentType === "text/csv") hydraulicData = {
-                "fileName": file.name,
-                "url": file.downloadUri
-              }
+              $.each(sectionChildren.items, function (index, sectionChildSite) {
+                //console.log(section + ' child site:',sectionChildSite.title, sectionChildSite);
 
-              else analysis.push({
-                "fileName": file.name,
-                "url": file.downloadUri
+                if (sectionChildSite.hasChildren) {
+
+                  $.getJSON(scienceBaseRootURL + '/catalog/items?parentId=' + sectionChildSite.id + '&format=json', function (sectionChildSiteChildren) {
+                    //console.log(section + ' children of children found:',sectionChildSiteChildren, "HERE");
+
+                    $.each(sectionChildSiteChildren.items, function (index, sectionChildSiteChildrenSite) {
+                      //console.log(section + ' child of children site:',sectionChildSiteChildrenSite.title);
+
+                      if (sectionChildSiteChildrenSite.hasChildren) {
+
+                        $.getJSON(scienceBaseRootURL + '/catalog/items?parentId=' + sectionChildSite.id + '&format=json', function (sectionChildSiteChildren) {
+                          //console.log(section + ' children of children found:',sectionChildSiteChildren.items.length);
+      
+                          $.each(sectionChildSiteChildren.items, function (index, sectionChildSiteChildrenSite) {
+                            //console.log(section + ' child of children site:',sectionChildSiteChildrenSite.title);
+
+                            if (sectionChildSiteChildrenSite.hasChildren) {
+
+                              $.getJSON(scienceBaseRootURL + '/catalog/items?parentId=' + sectionChildSiteChildrenSite.id + '&format=json', function (dataItem) {
+                                //console.log(section + ' children of children of children found:',dataItem);
+            
+                                $.each(dataItem.items, function (index, item) {
+                                  //console.log('in item loop', item)
+
+                                  if (!item.hasChildren) {
+                                    //console.log('WE HAVE REACHED THE END OF THE TREE:', sectionChildSiteChildrenSite.title)
+
+                                    //get full item
+                                    $.getJSON(item.link.url + '?format=json', function (fileData) {
+
+                                      //console.log('full item:',fileData);
+
+                                      //get citation
+                                      var citation = {};
+                                      $.each(fileData.webLinks, function (index, webLink) {
+                                        if (webLink.type == 'publicationReferenceSource') {
+                                          citation = webLink;
+                                        }
+                                      });
+
+                                      //case where we have many files here at end of tree
+                                      if (fileData.files && fileData.files.length > 0) {
+                                        $.each(fileData.files, function (index, file) {
+
+                                          var siteID = String(file.name.split('_')[0]);
+                                          var date = String(file.name.split('_')[1]);
+
+                                          //make sure we have a real site
+                                          if (siteID === 'CURVfiles' || siteID === 'DISPfiles') {
+                                            return;
+                                          }
+                   
+                                          //initiate this site if we dont have it
+                                          if (!(siteID in scienceBaseItems)) {
+                                            scienceBaseItems[siteID] = {
+                                              analysis: [],
+                                              hydraulicData: [],
+                                              report: citation
+                                            };
+                                          }
+          
+                                          var newObj = {
+                                            fileName: file.name,
+                                            url: file.url,
+                                            date: date
+                                          };
+  
+                                          if (file.contentType == 'application/pdf') {
+                                            scienceBaseItems[siteID].analysis.push(newObj);
+                                          }
+  
+                                          if (file.contentType == 'text/csv') {
+                                            scienceBaseItems[siteID].hydraulicData.push(newObj);
+                                          }  
+                                        });
+                                      }
+
+                                      //otherwise if no files, just get report citation
+                                      else {
+                                        
+                                        var siteID = String(fileData.title.split('_')[0]);
+                                        var localID = String(fileData.title.split('_')[1]);
+
+                                        //initiate this site if we dont have it
+                                        if (!(siteID in scienceBaseItems)) {
+                                          scienceBaseItems[siteID] = {
+                                            report: citation
+                                          };
+                                        }
+                                      }
+                                    });
+                                  }
+                                });
+                              });
+                            }
+                          });
+                        });
+                      }
+
+                      //if no children here we need to scrape the summary text for site list
+                      else {
+                        
+                        if (sectionChildSiteChildrenSite.summary && sectionChildSiteChildrenSite.summary.indexOf('LIST OF HYDRAULIC TESTS:') !== -1) {
+                          //console.log('END OF TREE NEED TO REQUEST ACTUAL ITEM:', sectionChildSiteChildrenSite, sectionChildSiteChildrenSite.link.url)
+
+                          $.getJSON(scienceBaseRootURL + '/catalog/item/' + sectionChildSiteChildrenSite.id + '?format=json', function (wellListItem) {
+                            //console.log('8888 IN HERE', wellListItem)
+
+                            var fullWellList = wellListItem.body.split('LIST OF HYDRAULIC TESTS:<br>\n')[1].split('<br>\n&nbsp;')[0]
+                            var wellList = fullWellList.split(',');
+                            var citation = wellListItem.citation;
+                            //console.log('LIST OF HYDRAULIC TESTS WELL LIST:', wellList, citation)
+
+                            $.each(wellList, function (index, well) {
+
+                              var siteID = well.split('_')[0].trim();
+
+                              //add to sciencebase internal object
+                              scienceBaseItems[siteID] = {
+                                report: wellListItem.webLinks[0]
+                              };
+                            });
+                          });
+                        }
+                      }
+                    });
+                  });
+                }
               });
             });
-
-            scienceBaseItems[siteID] = {
-              "hydraulicData": hydraulicData,
-              "analysis": analysis,
-              "report": report
-            };
-          })
+          }
         });
 
         console.log('scienceBase obj:', scienceBaseItems);
@@ -1409,15 +1630,10 @@ function openPopup(e) {
   $.each(e.layer.feature.properties, function (shortKey, property) {
 
     //lookup field descriptor
-    var description = null;
-    $.each(codeLookup, function (key, value) {
-      if (key === shortKey) {
-        if (value) description = value;
-      }
-    });
+    var description = codeLookup[shortKey];
 
     //make sure we have something
-    if (property.length > 0) {
+    if (property) {
 
       //make siteID a hyperlink
       if (shortKey === 'C001') {
@@ -1458,7 +1674,10 @@ function openPopup(e) {
       }
 
       //build observation well list
-      else if (shortKey === 'obvervationWells' && property.length > 0) {
+      else if (shortKey === 'obvervationWells') {
+
+        if (property.length == 0) return;
+
         popupContent += '<b>Observation Well(s):</b>&nbsp;&nbsp' + property.map(siteID => '<a href="https://waterdata.usgs.gov/nwis/inventory/?site_no=' + siteID + '" target="_blank">' + siteID + '</a>').join(', ') + '</br>';
 
         if (e.layer.feature.properties['C099']) {
@@ -1526,6 +1745,7 @@ function openPopup(e) {
         $.each(property, function (k, v) {
           //look up longName for result
           $.each(resultsLookup, function (resultKey, resultText) {
+            //console.log('CLICK', resultKey, resultText, k, v)
             if (resultKey === v['C744']) {
               resultsList[resultText] = v['C105']
             }
@@ -1534,7 +1754,7 @@ function openPopup(e) {
 
         //loop over ordered results list
         $.each(resultsList, function (key, value) {
-          if (value.length > 1) {
+          if (value.length > 0) {
             popupContent += '<b>' + key + ':</b>&nbsp;&nbsp;' + value + '</br>'
           }
         });
@@ -1549,38 +1769,33 @@ function openPopup(e) {
         //do nothing
       }
 
+      //get scienceBase stuff
+      else if (shortKey === 'report') {
+        popupContent += '<div id="reportDiv"><b>Link to report:</b>&nbsp;&nbsp;<a href="' + property.uri + '" target="_blank">Report</a></div>';
+      }
+      else if (shortKey === 'hydraulicData') {
+        var linkList = '';
+        $.each(property, function (i, v) {
+          //console.log(i,v)
+          linkList += '<b>Water Level Data:</b>&nbsp;&nbsp;<a href="' + v.url + '" target="_blank">' + siteID + '</a>';
+        });
+        popupContent += linkList + '</br>';
+      }
+      else if (shortKey === 'analysis') {
+        var linkList = '';
+        $.each(property, function (i, v) {
+          //console.log(i,v)
+          linkList += '<b>Analysis:</b>&nbsp;&nbsp;<a href="' + v.url + '" target="_blank">' + siteID + '</a>';
+        });
+        popupContent += linkList + '</br>';
+      }
+
       //otherwise add as normal
-      else popupContent += '<b>' + description + ':</b>&nbsp;&nbsp;' + property + '</br>';
+      else {
+        popupContent += '<b>' + description + ':</b>&nbsp;&nbsp;' + property + '</br>';
+      }
     }
   });
-
-  //get scienceBase stuff
-  var SBmatchFound = false;
-  $.each(scienceBaseItems, function (scienceBaseID, obj) {
-    if (siteID === scienceBaseID) {
-      SBmatchFound = true;
-      //console.log('test',obj);
-
-      $.each(obj, function (key, value) {
-
-        //console.log(key,value);
-        if (key === 'report' && value) {
-          popupContent += '<div id="reportDiv"><a href="' + value.url + '" target="_blank"><b>Report</b></a></div>';
-        }
-        if (key === 'hydraulicData' && value) popupContent += '<b>Water Level Data:</b>&nbsp;&nbsp;<a href="' + value.url + '" target="_blank">' + siteID + '</a></br>';
-        if (key === 'analysis' && value.length > 0) {
-          var linkList = '';
-          $.each(value, function (i, v) {
-            //console.log(i,v)
-            linkList += '<b>Analysis:</b>&nbsp;&nbsp;<a href="' + v.url + '" target="_blank">' + siteID + '</a>'
-          });
-          popupContent += linkList + '</br>';
-        }
-      });
-    }
-  });
-
-  console.log('scienceBase match found for site:', siteID, SBmatchFound);
 
   popup.setContent(popupContent).openOn(theMap);
 }
@@ -1657,6 +1872,8 @@ function drawSites(sites) {
     //not found, add a new feature
     if (!foundFlag) {
 
+      //console.log('found new site:',site)
+
       //create empty array for observationWells unless we have something
       var observationWells = [];
       if (site.C500) observationWells = [site.C500];
@@ -1674,7 +1891,8 @@ function drawSites(sites) {
           testType = "Specific-Capacity Test";
         }
         else {
-          console.log("Cant find testType for:",site)
+          console.warn("Cant find testType for:",site.C743,site)
+          testType = "Unknown";
         }
         
       }
@@ -1684,7 +1902,7 @@ function drawSites(sites) {
         "type": "Feature",
         "geometry": {
           "type": "Point",
-          "coordinates": [site.C910, site.C909]
+          "coordinates": [parseFloat(site.C910), parseFloat(site.C909)]
         },
         "properties": {
           'C001': site.C001,
@@ -1708,27 +1926,76 @@ function drawSites(sites) {
     }
   });
 
-  console.log('GeoJSON initial feature count:', featureCollection.features.length)
+  console.log('GeoJSON initial feature count:', featureCollection);
 
   var geoJSONlayer = geoJSON(featureCollection, {
     pointToLayer: function (feature, latlng) {
 
-      //considtional classString
-      var classString = iconLookup[feature.properties.testType];
+      var color = iconLookup2[feature.properties.testType];
+      if (color) {
 
-      if (classString) {
-        addToLegend(classString);
+        addToLegend(color);
 
-        var icon = L.divIcon({ className: classString })
-        return L.marker(latlng, { icon: icon });
+        return L.circleMarker(latlng, {
+
+          radius: 8,
+          fillColor: color,
+          color: "#000",
+          weight: .25,
+          opacity: 1,
+          fillOpacity: 0.8
+        });
       }
 
-    }
+      else {
+        console.warn('Marker icon not found for:',feature.properties)
+        return false;
+      }
+		}
   })
 
   sitesLayer.addLayer(geoJSONlayer);
 
-  setupFilters();
+  //load science base info
+  sitesLoaded += 1;
+  if (sitesLoaded === hydraulicsFiles.length) {
+    checkScienceBase();
+
+    $(document).ajaxStop(function() {
+      //console.log("ALL AJAX COMPLETED")
+      appendScienceBaseData();
+      // place code to be executed on completion of last outstanding ajax call here
+    });
+  }
+
+
+}
+
+function appendScienceBaseData() {
+
+  var counter = 0;
+  
+  //loop over every feature
+  $.each(featureCollection.features, function (key, feature) {
+
+    counter++;
+
+    //check if we have sciencebase data for this site
+    if (scienceBaseItems.hasOwnProperty(feature.properties.C001)) {
+      feature.properties.report = scienceBaseItems[feature.properties.C001].report;
+      feature.properties.analysis = scienceBaseItems[feature.properties.C001].analysis;
+      feature.properties.hydraulicData = scienceBaseItems[feature.properties.C001].hydraulicData;
+    }
+
+    //when we are done adding data we can do the next thing
+    if(counter == featureCollection.features.length) {
+      //now we can setup filters properly
+      setupFilters();
+    }
+
+  });
+
+  
 }
 
 function searchResultsList(text, list) {
@@ -1743,7 +2010,7 @@ function addToLegend(classString) {
 
   var legendID;
   var description;
-  $.each(iconLookup, function (text, icon) {
+  $.each(iconLookup2, function (text, icon) {
     if (icon === classString) {
       legendID = camelize(text);
       description = text;
@@ -1752,7 +2019,7 @@ function addToLegend(classString) {
 
   //check if this symbol is already in legend, if not add it
   if (document.getElementById(legendID) === null) {
-    $("#legend").append('<div id="' + legendID + '" class="card-text"><icon class="' + classString + '" /><span>' + description + '</span></div>');
+    $("#legend").append('<div id="' + legendID + '" class="card-text"><span><i class="circle" style="background:' + classString + '"></i>' + description + '</span></div>');
   }
 }
 
@@ -1763,17 +2030,17 @@ function loadSites() {
 
     $.ajax({
       url: hydraulicsFile,
+      dataType: "text",
       success: function (data) {
         $('#loading').hide();
         data = parseRDB(data);
+        //console.log('parsed RDB',data)
         drawSites(data)
-      },
-      dataType: "text",
-      complete: function () {
-        // call a function on complete 
       }
     });
   });
+
+
 
 }
 
@@ -1843,6 +2110,183 @@ function setBasemap(baseMap) {
     layerLabels = basemapLayer(baseMap + 'Labels');
     theMap.addLayer(layerLabels);
   }
+}
+
+function downloadData(type) {
+
+  var geoJSON = sitesLayer.toGeoJSON();
+
+  //check if we only want to export selected view
+  if ($('#exportCurrentView').is(":checked")) {
+    console.log('CURRENT VIEW ONLY',geoJSON)
+
+    //create temp fc for current view
+    var fc = {
+      type: "FeatureCollection",
+      features: []
+    }
+
+    //find features in current map extent
+    geoJSON.features.forEach(function(feature) {
+      if ( theMap.getBounds().contains([feature.geometry.coordinates[1],feature.geometry.coordinates[0]])) {
+        fc.features.push(feature);
+      }
+    });
+
+    //overwrite export layer
+    geoJSON = fc;
+    console.log(geoJSON)
+  }
+  
+  //theMap.getBounds().contains()
+
+  //first flatten geojson attributes
+  // for (var i = 0; i < geoJSON.features.length; i++) {
+  //   var props = geoJSON.features[i].properties;
+  //   var flattened = flatten(props);
+  //   geoJSON.features[i].properties = flattened;
+  // }
+
+  // console.log(geoJSON)
+
+  if (!geoJSON || geoJSON.features.length == 0) {
+    alert('No sites to export');
+    return
+  }
+
+  if (type === 'geojson') {
+
+    var data = JSON.stringify(geoJSON)
+    var filename = 'data.geojson';
+    
+    //console.log(data);
+		downloadFile(data,filename)
+  }
+
+  if (type === 'csv') {
+    var attributeCodes = ['C001','C012','C714','C101','C102','C099','testType','C743']
+    var resultCodes = ['PUMP.DURATION','PUMP.RT','SAT.HORZ.COND','SAT.VERT.COND','STOR.COEF','TRANSMISS','SPEC.CAP']
+
+    //lookup verbose headers and combine arrays
+    var headerRowList = attributeCodes.map(x => codeLookup[x]).concat(resultCodes.map(x => codeLookup[x]))
+
+    console.log('HEADER ROW:',headerRowList.length, headerRowList)
+
+    var csvData = [];
+    var dupList = [];
+
+    //push CSV header row
+    csvData.push(headerRowList.join(','));
+
+    geoJSON.features.forEach(function(feature) {
+        var attributes = [];
+        var rowObj = {};
+        
+        //first write out main attributeCodes
+        attributeCodes.forEach(function(name) {
+            attributes.push(feature.properties[name].toString());
+            var label = codeLookup[name];
+            rowObj[label] = '';
+            rowObj[label] = feature.properties[name].toString();
+
+            //if this is a siteID, encase it in quotes
+            if (name == 'C001') rowObj[label] = "'" + feature.properties[name].toString();
+        });
+
+        //only do this if there are some results
+        if (feature.properties.results.length > 0) {
+
+          //console.log('HERE', feature.properties.results)
+          resultCodes.forEach(function(resultCode) {
+
+            var resultFound = false;
+            var resultList = [];
+            var label = codeLookup[resultCode];
+            rowObj[label] = '';
+            
+            //for each result code search nested results for this feature
+            feature.properties.results.forEach(function(result) {
+              //console.log(result['C744'],resultCode)
+              if (result['C744'] == resultCode) {
+
+                rowObj[label] = result['C105'];
+                
+                //check if we already have this value key
+                if (resultList.indexOf(result['C744'] ) !== -1) {
+                  console.warn('Duplicate key found:',dupList.indexOf(feature.properties['C001']) , result['C744'], feature.properties['C001'])
+                  if (dupList.indexOf(feature.properties['C001']) === -1) dupList.push(feature.properties['C001'])
+                }
+
+                //stash this result key
+                resultList.push(result['C744'])
+
+                resultFound = true;
+
+                //push the actual value
+                attributes.push(result['C105'])
+              }
+            });
+
+            
+  
+            //if nothing was found push blank value
+            if (!resultFound) attributes.push('');
+
+          });
+        }
+
+        console.log('ROW OBJ', rowObj)
+
+        csvData.push(Object.values(rowObj).join(','))
+
+        //csvData.push(attributes);
+    });
+
+    csvData = csvData.join('\n');
+
+    //console.log(csvData);
+    console.log('dupList:',dupList)
+    var filename = 'data.csv';
+    downloadFile(csvData,filename);
+  }
+}
+
+function downloadFile(data,filename) {
+	var blob = new Blob([data], { type: 'text/csv;charset=utf-8;' });
+	if (navigator.msSaveBlob) { // IE 10+
+		navigator.msSaveBlob(blob, filename);
+	} else {
+		var link = document.createElement('a');
+		var url = URL.createObjectURL(blob);
+		if (link.download !== undefined) { // feature detection
+			// Browsers that support HTML5 download attribute
+			link.setAttribute('href', url);
+			link.setAttribute('download', filename);
+			link.style.visibility = 'hidden';
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+		}
+		else {
+			window.open(url);
+		}
+	}
+}
+
+function flatten (obj, prefix, current) {
+  prefix = prefix || []
+  current = current || {}
+
+  // Remember kids, null is also an object!
+  if (typeof (obj) === 'object' && obj !== null) {
+    Object.keys(obj).forEach(key => {
+      flatten(obj[key], prefix.concat(key), current)
+    })
+  } else {
+    current[prefix.join('.')] = obj
+  }
+
+  return current
 }
 
 function camelize(str) {

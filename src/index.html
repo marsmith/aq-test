@@ -4,8 +4,9 @@
     <meta name="author" content="Martyn Smith - USGS NY WSC">
 	<link rel="copyright" href="license.txt">
     <title>Aquifer Test Locator</title>
+    <meta charset="utf-8">
+    <link href="https://fonts.googleapis.com/css?family=Lato" rel="stylesheet">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <script src="./bundle.js"></script>  
   </head>
   <body>
     
@@ -18,7 +19,7 @@
             <span class="app-name">Aquifer Test Locator</span><span class="app-name-mobile">Aquifer Test Locator</span> 
         </div>
 
-        <button id="aboutButton" class="btn btn-default top-menu-btn pull-right">
+        <button id="aboutButton" class="btn btn-default top-menu-btn">
             <i class="fa fa-info"></i><span class="d-none d-sm-inline">&nbsp;&nbsp;About</span>
         </button>
     </div>
@@ -63,13 +64,34 @@
                                         </select> -->
 
                                         <h5 class="card-title" id="aqCriteria">Aquifer Test Criteria</h5>
-                                        <select class="appFilter" id="aquiferFilter" data-selectname="Select an Aquifer" data-code="C714" multiple>
-                                        </select>
-                                        <select class="appFilter" id="testTypeFilter" data-selectname="Select a Test Type" data-code="testType" multiple>
-                                        </select>
-                                        <select class="appFilter" id="testMethodFilter" data-selectname="Select a Test Method" data-code="C743" multiple>
-                                        </select>
-                        
+
+                                        <div class="input-group mb-3">
+                                            <select class="appFilter mb-3" id="aquiferFilter" title="Select an Aquifer" data-code="C714" data-live-search="true" data-size="5" data-width="auto" multiple>
+                                            </select>
+                                            <select class="appFilter mb-3" id="testTypeFilter" title="Select a Test Type" data-code="testType" data-size="5" data-width="auto" multiple>
+                                            </select>
+                                            <select class="appFilter mb-3" id="testMethodFilter" title="Select a Test Method" data-code="C743" data-size="5" data-width="auto" multiple>
+                                            </select>
+                                            <select class="appFilter mb-3" id="reportNameFilter" title="Select a Report Name" data-code="report" data-size="5" data-width="auto" data-dropdown-align-right="true" multiple>
+                                            </select>
+
+                                            <div id="siteIDFilterWrapper" class="typeahead__container">
+                                                <div class="typeahead__field">
+                                                    <div class="typeahead__query">
+                                                        <input id="siteIDFilter" class="js-typeahead appFilter" name="q" autocomplete="off" placeholder="Enter Site ID(s)" data-code="C001">
+                                                    </div>
+                                                    <!-- <div class="typeahead__button">
+                                                        <button type="submit">
+                                                            <span class="typeahead__search-icon"></span>
+                                                        </button>
+                                                    </div> -->
+                                                </div>
+                                            </div>
+                             
+
+                                            
+                                        </div>
+       
                                     </div>
                                     <div class="card-footer text-muted">
                                         <button id="applyFilters" type="button" class="btn btn-success">Apply Filters</button>
@@ -78,6 +100,31 @@
             
                                 </div> 
                             </div>
+
+                            <div class="card-header collapsed" data-toggle="collapse" data-parent="#accordion" href="#exportPanel">
+                                <a class="card-title" >
+                                    Export
+                                </a>
+                            </div>
+                            <div id="exportPanel" class="card-body collapse" data-parent="#accordion">
+      
+                                <div id="export" style="display:block;">
+
+                                    <div class="form-check mb-3">
+                                        <input type="checkbox" class="form-check-input" id="exportCurrentView">
+                                        <label class="form-check-label" for="exportCurrentView">Export selected view only</label>
+                                    </div>
+   
+                                    <div class="form-group">
+                                        <button type="button" class="btn btn-success btn-block" id="exportGeoJSON" >Export GeoJSON&nbsp;&nbsp;<i class="glyphicon glyphicon-download-alt"></i></button>
+                                    </div>
+                                    <div class="form-group">
+                                        <button type="button" class="btn btn-success btn-block" id="exportCSV" >Export CSV&nbsp;&nbsp;<i class="glyphicon glyphicon-download-alt"></i></button>
+                                    </div>
+                                </div>
+
+                            </div>
+
    
                             <div class="card-header collapsed" data-toggle="collapse" data-parent="#accordion" href="#basemapsPanel">
                                 <a class="card-title" >
@@ -125,29 +172,27 @@
                         </div>
     
                         <!-- .footer-social-links -->
-                        <div class="footer-links">
+                        <div class="footer-icons">
                             <a href="https://twitter.com/usgs" target="_blank">
-                                <i class="fa fa-twitter-square"><span class="only">Twitter</span></i>
+                                <i class="fab fa-twitter-square"></i>
                             </a>
                             <a href="https://facebook.com/usgeologicalsurvey" target="_blank">
-                                <i class="fa fa-facebook-square"><span class="only">Facebook</span></i>
+                                <i class="fab fa-facebook-square"></i>
                             </a>
                             <a href="https://plus.google.com/112624925658443863798/posts" target="_blank">
-                                <i class="fa fa-google-plus-square"><span class="only">Google+</span></i>
+                                <i class="fab fa-google-plus-square"></i>
                             </a>
                             <a href="https://github.com/usgs" target="_blank">
-                                <i class="fa fa-github"><span class="only">GitHub</span></i>
+                                <i class="fab fa-github-square"></i>
                             </a>
-    
                             <a href="https://flickr.com/usgeologicalsurvey" target="_blank">
-                                <i class="fa fa-flickr"><span class="only">Flickr</span></i>
+                                <i class="fab fa-flickr"></i>
                             </a>
-    
                             <a href="http://youtube.com/usgs" target="_blank">
-                                <i class="fa fa-youtube-play"><span class="only">YouTube</span></i>
+                                <i class="fab fa-youtube-square"></i>
                             </a>
                             <a href="https://instagram.com/usgs" target="_blank">
-                                <i class="fa fa-instagram"><span class="only">Instagram</span></i>
+                                <i class="fab fa-instagram"></i>
                             </a>
                         </div>
                     </div>
@@ -176,7 +221,7 @@
                         </ul>
                         <div class="tab-content">
                             <div role="tabpanel" class="tab-pane active" id="aboutTabPane"><br>
-                                <p>The U.S. Geological Survey (USGS) Aqquifer Test Locator is a web-base tool for the retrieval of aquifer-test information stored in the National Water Information System (NWIS).  The aquifer-test information includes well and aquifer completions, test types and analysis methods, and estimated hydraulic properties. The tool also provides links to associated interpretative publications and hydraulic-test data stored in NWIS or published as data releases.</p>
+                                <p>The U.S. Geological Survey (USGS) Aquifer Test Locator is a web-based tool for the retrieval of aquifer-test information stored in the National Water Information System (NWIS).  The aquifer-test information includes well and aquifer completions, test types and analysis methods, and estimated hydraulic properties. The tool also provides links to associated interpretative publications and hydraulic-test data stored in NWIS or published as data releases.</p>
 
                                 <p>Since 1994, the USGS Water Mission Area has required internal review and archival of hydraulic-test data and analysis to support estimates of hydraulic properties used in its publications.  This tool provides a system to readily serve the estimated aquifer properties and associated test information in support of USGS groundwater investigations.</p>
 

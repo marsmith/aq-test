@@ -1,41 +1,68 @@
 var path = require('path');
 var webpack = require('webpack');
 var pkg = require('./package.json');
-var BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
+var HtmlWebpackPlugin = require('html-webpack-plugin');
+var { CleanWebpackPlugin } = require('clean-webpack-plugin');
+var CopyPlugin = require('copy-webpack-plugin');
 
 var PATHS = {
-    src: path.join(__dirname, 'src/'),
-    dist: path.join(__dirname, 'dist/')
+    dist: path.join(__dirname, 'dist/'),
+    src: path.join(__dirname, 'src/')
   };
 
 module.exports = {
-    entry: './app.js',
+    entry: './src/app.js',
     output: {
-        filename: 'bundle.js',
-        path: path.resolve(__dirname, 'dist')
+        filename: '[name].[contenthash].js',
+        path: PATHS.dist
     },
+    optimization: {
+		splitChunks: {
+			cacheGroups: {
+				commons: {
+					test: /[\\/]node_modules[\\/]/,
+					name: 'vendors',
+					chunks: 'all'
+				}
+			}
+		}
+	},
     module: {
         rules: [
-            {   test: /\.css$/,
-                use: ['style-loader', 'css-loader' ]
-            },
+            { test: /\.css$/, use: ['style-loader', 'css-loader' ] },
             { test: /\.png$/, loader: 'url-loader?limit=8192', query: { mimetype: 'image/png' } },
             { test: /\.woff($|\?)|\.woff2($|\?)|\.ttf($|\?)|\.eot($|\?)|\.svg($|\?)/, loader: 'url-loader' },
-            { test: /\.js?$/, exclude: /node_modules/, loader: 'babel-loader' },
+            { test: /\.js?$/, exclude: '/node_modules/', use: { loader: 'babel-loader' } },
             { test: /\.html$/, loader: 'raw-loader' }
         ]
     },
     plugins: [
         new webpack.ProvidePlugin({
             '$': 'jquery',
-            'Util': "exports-loader?Util!bootstrap/js/dist/util"
+            'tokml': 'tokml'
         }),
         new webpack.DefinePlugin( {'VERSION': JSON.stringify(pkg.version) }),
-        new BundleAnalyzerPlugin()
+        new HtmlWebpackPlugin({
+            filename: 'index.html',
+            inject: 'head',
+            template: './src/index.html'
+        }),
+        new CleanWebpackPlugin(),
+        new CopyPlugin([
+            { from: './src/*.json', to: './', flatten: true },
+            { from: './src/images', to: './images' },
+            { from: './src/*.php', to: './', flatten: true }
+          ]),
+        new webpack.ContextReplacementPlugin(
+            /moment[/\\]locale$/,
+            /en/
+        ),
+        //new BundleAnalyzerPlugin()
     ],
     devServer: {
         open: true,
-        contentBase: PATHS.dist,
-        watchContentBase: true
+        contentBase: PATHS.src,
+        watchContentBase: true,
+        port: 8008
     }
 };

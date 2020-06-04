@@ -5,34 +5,43 @@
   "main": "webpack.config.js",
   "scripts": {
     "start": "webpack-dev-server --mode development --open",
-    "build": "webpack --mode production && copyfiles -u 1 dist/**/*.* //afs/.usgs.gov/www/staging-ny.water/htdocs/maps/aq-test"
+    "build": "webpack --mode production"
   },
   "author": "Martyn J. Smith",
   "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/marsmith/aq-test"
+  },
   "dependencies": {
-    "bootstrap": "^4.0.0",
-    "esri-leaflet": "^2.1.4",
-    "font-awesome": "^4.7.0",
-    "jquery": "^3.3.1",
-    "knockout": "^3.5.0-beta",
-    "leaflet": "^1.3.1",
-    "leaflet.markercluster": "^1.3.0",
+    "@fortawesome/fontawesome-svg-core": "^1.2.19",
+    "@fortawesome/free-brands-svg-icons": "^5.9.0",
+    "@fortawesome/free-regular-svg-icons": "^5.9.0",
+    "@fortawesome/free-solid-svg-icons": "^5.9.0",
+    "bootstrap": ">=4.3.1",
+    "esri-leaflet": "^2.3.2",
+    "jquery": "^3.4.1",
+    "jquery-typeahead": "^2.11.0",
+    "leaflet": "^1.6.0",
     "marker-creator": "git+https://github.com/USGS-WiM/marker-creator.git",
-    "popper.js": "^1.14.1",
-    "select2": "^4.0.5"
+    "popper.js": "^1.16.1",
+    "select2": "^4.0.8",
+    "tokml": "^0.4.0"
   },
   "devDependencies": {
-    "babel-loader": "^7.1.4",
-    "concurrently": "^3.5.1",
-    "copyfiles": "^2.0.0",
-    "css-loader": "^0.28.11",
+    "@babel/core": "^7.8.3",
+    "@babel/preset-env": "^7.8.3",
+    "babel-loader": "^8.0.6",
+    "clean-webpack-plugin": "^3.0.0",
+    "copy-webpack-plugin": "^5.1.1",
+    "css-loader": "^3.4.2",
     "exports-loader": "^0.7.0",
-    "raw-loader": "^0.5.1",
-    "style-loader": "^0.20.3",
-    "url-loader": "^1.0.1",
-    "webpack": "^4.1.1",
-    "webpack-bundle-analyzer": "^2.11.1",
-    "webpack-cli": "^2.0.12",
-    "webpack-dev-server": "^3.1.1"
+    "html-webpack-plugin": "^3.2.0",
+    "raw-loader": "^4.0.0",
+    "style-loader": "^1.1.3",
+    "url-loader": "^3.0.0",
+    "webpack": "^4.41.5",
+    "webpack-cli": "^3.3.10",
+    "webpack-dev-server": "^3.10.1"
   }
 }
