@@ -20,7 +20,7 @@
     "@fortawesome/free-solid-svg-icons": "^5.9.0",
     "bootstrap": ">=4.3.1",
     "esri-leaflet": "^2.3.2",
-    "jquery": "^3.4.1",
+    "jquery": "^3.5.0",
     "jquery-typeahead": "^2.11.0",
     "leaflet": "^1.6.0",
     "marker-creator": "git+https://github.com/USGS-WiM/marker-creator.git",
