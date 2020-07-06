@@ -67,6 +67,7 @@ var featureCollection = {
 };
 var layer, sitesLayer, layerLabels;
 var scienceBaseItems = {};
+var reportObj = {};
 var sitesLoaded = 0;
 
 var codeLookup = {
@@ -93,8 +94,8 @@ var codeLookup = {
   'C148': 'Date discharge measured',
   'C500': 'Related site station number',
   'C100': 'Aquifer',
-  'C101': 'Top of interval (ft)',
-  'C102': 'Bottom of interval (ft)',
+  'C101': 'Top of tested interval (ft)',
+  'C102': 'Bottom of tested interval (ft)',
   'C714': 'Aquifer',
   'testType': 'Test Type',
   'PUMP.DURATION': 'Pump Duration',
@@ -1322,8 +1323,10 @@ function applyFilters() {
 
           var selectionCode = feature.properties[selectCode];
 
+          //console.log('selection Code2:', selectionCode)
+
           //special exception for report
-          if (feature.properties[selectCode] && selectCode == 'report') selectionCode = feature.properties[selectCode].title
+          if (feature.properties[selectCode] && selectCode == 'report') selectionCode = feature.properties[selectCode].reportName
 
           if (filterArray.indexOf(selectionCode) !== -1) {
             found = true;
@@ -1400,12 +1403,56 @@ function setupFilters() {
 
         //special case for report filter
         if (code == 'report') {
-          text = feature.properties[code].title.trim();
+
+          //CODE FOR PARSING OUT A SHORTER REPORT NAME FOR THE REPORT FILTER
+
+          var urlList = feature.properties[code].uri.split('/');
+          var reportShortName = urlList[urlList.length - 1];
+          var reportFullName = 'USGS ';
+
+          //special case for 'professional paper'
+          if (reportShortName === 'report.pdf') {
+            //console.log('do something with this:', feature.properties[code])
+            var type = urlList[urlList.length - 3].toUpperCase();
+            var number = urlList[urlList.length - 2].toUpperCase();
+            reportFullName += type + ' ' + number;
+          }
+
+          //otherwise assume its one of these report types
+          else {
+            if (reportShortName.indexOf('ofr') !== -1 || reportShortName.indexOf('sir') !== -1 || reportShortName.indexOf('wri') !== -1 ) {
+              var type = reportShortName.substring(0, 3).toUpperCase();
+              var number = reportShortName.substring(3);
+              reportFullName += type + ' ' + number;
+              //console.log('found parsable report name:', reportShortName, reportFullName);
+  
+            }
+          }
+
+          feature.properties[code].reportName = reportFullName;
+
+          //add to report object
+          if (!reportObj[reportFullName]) {
+            reportObj[reportFullName] = feature.properties[code];
+
+            //add to modal table
+            $('#reportTableBody').append('<tr><td>' + feature.properties[code].reportName + '</td><td>' + feature.properties[code].title + '</td><td><a href="' + feature.properties[code].uri + '" target="_blank">link</a></td></tr>')
+      
+          }
+
+          //console.log('report obj:', reportObj)
+          //console.log('populating report filter dropdown:', feature.properties[code])
+          
+          //text = feature.properties[code].title.trim();
+          text = reportFullName;
         }
 
         else {
           text = feature.properties[code].trim();
         }
+
+
+        //console.log('adding option:', text)
 
         //only add new filter option if it doesn't exist
         if ($('#' + id).has("option:contains('" + text + "')").length === 0) {
@@ -1642,13 +1689,25 @@ function openPopup(e) {
 
         if (e.layer.feature.properties['C099']) {
           var dateString = e.layer.feature.properties['C099'];
-          var d = new Date(dateString.substring(0, 4) + '-' + dateString.substring(4, 6) + '-' + dateString.substring(6, 8));
-          d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
-          var startDate = new Date(d.setDate(d.getDate() - 3));
-          var endDate = new Date(d.setDate(d.getDate() + 10));
-          var startDateText = startDate.getFullYear() + '-' + (startDate.getMonth() + 1) + '-' + startDate.getDate();
-          var endDateText = endDate.getFullYear() + '-' + (endDate.getMonth() + 1) + '-' + endDate.getDate();
+
+          //if we only have year
+          if (dateString.length == 4) {
+            var d = new Date(dateString);
+            var startDateText = d.getFullYear().toString();
+            var endDateText = d.getFullYear().toString();
+          }
+
+          else {
+            var d = new Date(dateString.substring(0, 4) + '-' + dateString.substring(4, 6) + '-' + dateString.substring(6, 8));
+            d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
+            var startDate = new Date(d.setDate(d.getDate() - 3));
+            var endDate = new Date(d.setDate(d.getDate() + 10));
+            var startDateText = startDate.getFullYear() + '-' + (startDate.getMonth() + 1) + '-' + startDate.getDate();
+            var endDateText = endDate.getFullYear() + '-' + (endDate.getMonth() + 1) + '-' + endDate.getDate();
+          }
+
           console.log('startDate',startDateText,'endDate',endDateText)
+
 
           //get gwlevel data
           var DDcodes = ['62610','62611','72019'];
@@ -1710,10 +1769,19 @@ function openPopup(e) {
 
       //convert date
       else if (shortKey === 'C099') {
-        var d = new Date(property.substring(0, 4) + '-' + property.substring(4, 6) + '-' + property.substring(6, 8));
-        d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
-        d = d.toLocaleString('en-us', { month: 'long', day: 'numeric', year: 'numeric' });
-        popupContent += '<b>' + description + ':</b>&nbsp;&nbsp;' + d + '</br>';
+
+        //special method for year only dates
+        if (property.length == 4) {
+          popupContent += '<b>' + description + ':</b>&nbsp;&nbsp;' + property + '</br>';
+        }
+
+        else {
+          var d = new Date(property.substring(0, 4) + '-' + property.substring(4, 6) + '-' + property.substring(6, 8));
+          d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
+          d = d.toLocaleString('en-us', { month: 'long', day: 'numeric', year: 'numeric' });
+          popupContent += '<b>' + description + ':</b>&nbsp;&nbsp;' + d + '</br>';
+        }
+
       }
 
       // //lookup aquifter test method
