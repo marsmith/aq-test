@@ -1182,7 +1182,7 @@ $(document).ready(function () {
   Icon.Default.imagePath = './images/';
 
   //create map
-  theMap = map('mapDiv', { preferCanvas: true, zoomControl: false, maxZoom: 12 });
+  theMap = map('mapDiv', { preferCanvas: true, zoomControl: false });
 
   //add zoom control with your options
   control.zoom({ position: 'topright' }).addTo(theMap);
@@ -1241,28 +1241,6 @@ $(document).ready(function () {
 
   sitesLayer.on('click', function (e) {
     openPopup(e);
-  });
-
-  theMap.on('zoomend', function() {
-    var currentZoom = theMap.getZoom();
-
-    if (currentZoom > 10) {
-      sitesLayer.eachLayer(function(geoJSONlayer){
-
-        geoJSONlayer.eachLayer(function(layer) {
-          console.log('TEST',layer.setStyle({radius: 20}));
-        });
-      });
-    }
-    else {
-      sitesLayer.eachLayer(function(geoJSONlayer){
-
-        geoJSONlayer.eachLayer(function(layer) {
-          console.log('TEST',layer.setStyle({radius: 8}));
-        });
-      });
-    }
-
   });
   /*  END EVENT HANDLERS */
 });
