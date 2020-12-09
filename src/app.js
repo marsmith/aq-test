@@ -54,7 +54,8 @@ dom.watch();
 var MapX = '-75.5'; //set initial map longitude
 var MapY = '42.5'; //set initial map latitude
 var MapZoom = 7; //set initial map zoom
-var hydraulicsFiles = ['./hydraulics.subf.subf'];  //input RDB file
+var hydraulicsFileLocal = './hydraulics.local.subf';  //input RDB file
+var hydraulicsFileAll = './internal/hydraulics.all.subf';  //input RDB file
 var scienceBaseRootURL = 'https://www.sciencebase.gov'; 
 var scienceBaseItem = '5c0e8232e4b0c53ecb2ad8df';
 //END user config variables 
@@ -68,7 +69,6 @@ var featureCollection = {
 var layer, sitesLayer, layerLabels;
 var scienceBaseItems = {};
 var reportObj = {};
-var sitesLoaded = 0;
 
 var codeLookup = {
   'C001': 'Site ID (station number)',
@@ -510,6 +510,10 @@ var testMethodLookup = {
   'AQS32': {
     'testType': 'Step Test',
     'testExplanation': 'Hantush'
+  },
+  'AQS33': {
+    'testType': 'Specific-Capacity Test',
+    'testExplanation': 'Bradbury and Rothschild (1985)'
   },
   'AQW01': {
     'testType': 'Water-Level Fluctuation',
@@ -1178,7 +1182,7 @@ $(document).ready(function () {
   Icon.Default.imagePath = './images/';
 
   //create map
-  theMap = map('mapDiv', { preferCanvas: true, zoomControl: false });
+  theMap = map('mapDiv', { preferCanvas: true, zoomControl: false, maxZoom: 12 });
 
   //add zoom control with your options
   control.zoom({ position: 'topright' }).addTo(theMap);
@@ -1196,7 +1200,8 @@ $(document).ready(function () {
   //define layers
   sitesLayer = featureGroup().addTo(theMap);
 
-  loadSites();
+  //by default try to load internal data;
+  loadSites(hydraulicsFileAll);
 
   /*  START EVENT HANDLERS */
   $('.basemapBtn').click(function () {
@@ -1236,6 +1241,28 @@ $(document).ready(function () {
 
   sitesLayer.on('click', function (e) {
     openPopup(e);
+  });
+
+  theMap.on('zoomend', function() {
+    var currentZoom = theMap.getZoom();
+
+    if (currentZoom > 10) {
+      sitesLayer.eachLayer(function(geoJSONlayer){
+
+        geoJSONlayer.eachLayer(function(layer) {
+          console.log('TEST',layer.setStyle({radius: 20}));
+        });
+      });
+    }
+    else {
+      sitesLayer.eachLayer(function(geoJSONlayer){
+
+        geoJSONlayer.eachLayer(function(layer) {
+          console.log('TEST',layer.setStyle({radius: 8}));
+        });
+      });
+    }
+
   });
   /*  END EVENT HANDLERS */
 });
@@ -2024,17 +2051,26 @@ function drawSites(sites) {
 
   sitesLayer.addLayer(geoJSONlayer);
 
-  //load science base info
-  sitesLoaded += 1;
-  if (sitesLoaded === hydraulicsFiles.length) {
-    checkScienceBase();
+  checkScienceBase();
 
-    $(document).ajaxStop(function() {
-      //console.log("ALL AJAX COMPLETED")
-      appendScienceBaseData();
-      // place code to be executed on completion of last outstanding ajax call here
-    });
-  }
+  $(document).ajaxStop(function() {
+    //console.log("ALL AJAX COMPLETED")
+    appendScienceBaseData();
+    // place code to be executed on completion of last outstanding ajax call here
+  });
+  
+
+  // //load science base info
+  // sitesLoaded += 1;
+  // if (sitesLoaded === hydraulicsFiles.length) {
+  //   checkScienceBase();
+
+  //   $(document).ajaxStop(function() {
+  //     //console.log("ALL AJAX COMPLETED")
+  //     appendScienceBaseData();
+  //     // place code to be executed on completion of last outstanding ajax call here
+  //   });
+  // }
 
 
 }
@@ -2091,25 +2127,26 @@ function addToLegend(classString) {
   }
 }
 
-function loadSites() {
+function loadSites(url) {
 
-  $(hydraulicsFiles).each(function (i, hydraulicsFile) {
-    console.log('in loadSites. loading:',hydraulicsFile)
+  console.log('Attempting to load:', url)
 
-    $.ajax({
-      url: hydraulicsFile,
-      dataType: "text",
-      success: function (data) {
-        $('#loading').hide();
-        data = parseRDB(data);
-        //console.log('parsed RDB',data)
-        drawSites(data)
-      }
-    });
+  $.ajax({
+    url: url,
+    dataType: "text",
+    success: function (data) {
+      $('#loading').hide();
+      data = parseRDB(data);
+      //console.log('parsed RDB',data)
+      drawSites(data)
+    },
+    error: function (xhr,status,error) {
+      console.log('There was a request error, attempting to retrieve local...')
+
+      //fallback to local only
+      loadSites(hydraulicsFileLocal)
+    }
   });
-
-
-
 }
 
 function parseRDB(data) {

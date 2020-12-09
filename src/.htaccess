@@ -1,0 +1,4 @@
+<RequireAny>
+  Require host .usgs.gov .gs.doi.net
+  Require env  usgs_address
+</RequireAny>
