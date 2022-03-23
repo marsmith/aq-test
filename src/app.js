@@ -1303,10 +1303,16 @@ function applyFilters() {
     var filterArray = [];
 
     if (divID == 'siteIDFilter') {
+
       $('.typeahead__label span').not('.typeahead__cancel-button').each(function( index ) {
         filterArray.push($( this ).text());
         console.log('found',$( this ).text(), filterArray)
       });
+
+      //if nothing was selected with typeahead, grab the text value instead
+      if (filterArray.length == 0) {
+        filterArray.push($('#' + divID).val());
+      }
     }
 
     else {
