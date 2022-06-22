@@ -55,7 +55,8 @@ var MapX = '-75.5'; //set initial map longitude
 var MapY = '42.5'; //set initial map latitude
 var MapZoom = 7; //set initial map zoom
 var hydraulicsFileLocal = './hydraulics.local.subf';  //input RDB file
-var hydraulicsFileAll = './internal/hydraulics.all.subf';  //input RDB file
+//var hydraulicsFileAll = './internal/hydraulics.all.subf';  //input RDB file
+var hydraulicsFileAll = './hydraulics.all.subf';  //input RDB file
 var scienceBaseRootURL = 'https://www.sciencebase.gov'; 
 var scienceBaseItem = '5c0e8232e4b0c53ecb2ad8df';
 //END user config variables 
@@ -2001,7 +2002,13 @@ function drawSites(sites) {
       };
 
       //add to featureCollection
-      featureCollection.features.push(feature);
+      if (isNaN(feature.geometry.coordinates[0])) {
+        console.log('Bad lat/lng for feature:',feature)
+      }
+      else {
+        featureCollection.features.push(feature);
+      }
+
     }
   });
 
